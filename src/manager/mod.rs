@@ -34,8 +34,10 @@ impl Manager {
             match dir {
                 Err(e) => println!("{:?}", e),
                 Ok(path) => {
-                    if (path.to_str().unwrap()
-                        == "/home/creami/.steam/steam/steamapps/workshop/content/294100/839005762")
+                    if matches!(path.to_str().unwrap(),
+                        "/home/creami/.steam/steam/steamapps/workshop/content/294100/839005762" |
+                        "/home/creami/.steam/steam/steamapps/workshop/content/294100/715565817" |
+                        "/home/creami/.steam/steam/steamapps/workshop/content/294100/1684944322")
                     {
                         parse::parse_mod(path);
                     }
