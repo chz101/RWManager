@@ -15,6 +15,7 @@ mod parse;
 // Get Dependencies
 // Reload mod list
 
+#[derive(Debug)]
 pub struct Manager {
     inactive: Vec<parse::Entry>,
     active: Vec<parse::Entry>,
@@ -34,13 +35,7 @@ impl Manager {
             match dir {
                 Err(e) => println!("{:?}", e),
                 Ok(path) => {
-                    if matches!(path.to_str().unwrap(),
-                        "/home/creami/.steam/steam/steamapps/workshop/content/294100/839005762" |
-                        "/home/creami/.steam/steam/steamapps/workshop/content/294100/715565817" |
-                        "/home/creami/.steam/steam/steamapps/workshop/content/294100/1684944322")
-                    {
-                        parse::parse_mod(path);
-                    }
+                    println!("{:#?}", parse::parse_mod(path));
                 }
             }
         }

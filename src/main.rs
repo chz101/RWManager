@@ -99,7 +99,5 @@ pub fn main() {
 
 pub fn main() {
     let m = manager::Manager::new();
-    m.fetch_mods(String::from(
-        "/home/creami/.steam/steam/steamapps/workshop/content/294100",
-    ));
+    m.fetch_mods(String::from("/home/creami/Documents/rwmanager/test/input"));
 }

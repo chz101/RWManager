@@ -1,7 +1,6 @@
-use quick_xml::events::{BytesStart, Event};
+use quick_xml::events::Event;
 use quick_xml::reader::Reader;
 use std::fs;
-use std::io::{BufRead, BufReader};
 use std::path::PathBuf;
 use std::str;
 
@@ -181,6 +180,5 @@ pub fn parse_mod(path: PathBuf) -> Entry {
         }
     }
 
-    println!("{:#?}", entry);
     return entry;
 }
