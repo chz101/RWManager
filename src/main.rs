@@ -1,39 +1,29 @@
 use eframe::egui::{Context, Id};
 use eframe::{egui, App, Frame, NativeOptions};
 
-use egui::CentralPanel;
 use egui_dnd::utils::shift_vec;
 use egui_dnd::{DragDropItem, DragDropUi};
 
 mod manager;
-/*
-Steps:
-
-    - Create a full list of mods
-    - Parse/Get the list of active mods
-
-    - Split into column of active and inactive mods
-
-    - GUI lets updates to active and inactive happen
-
-    - Move around active and inactive mods
-
-    - Save list of active mods to correct location
-
-*/
-/*
 
 struct DnDApp {
     // DragDropUi stores state about the currently dragged item
     dnd: DragDropUi,
-    items: Vec<ItemType>,
+    itemsone: Vec<ItemType>,
+    itemstwo: Vec<ItemType>,
 }
 
 impl Default for DnDApp {
     fn default() -> Self {
         DnDApp {
             dnd: DragDropUi::default(),
-            items: ["alfred", "bernhard", "christian"]
+            itemsone: ["alfred", "bernhard", "christian"]
+                .iter()
+                .map(|name| ItemType {
+                    name: name.to_string(),
+                })
+                .collect(),
+            itemstwo: ["jerry", "simon", "lucy"]
                 .iter()
                 .map(|name| ItemType {
                     name: name.to_string(),
@@ -56,11 +46,11 @@ impl DragDropItem for ItemType {
 
 impl App for DnDApp {
     fn update(&mut self, ctx: &Context, _frame: &mut Frame) {
-        egui::CentralPanel::default().show(ctx, |ui| {
+        egui::SidePanel::left("Lef Side").show(ctx, |ui| {
             let response =
                 // make sure this is called in a vertical layout.
                 // Horizontal sorting is not supported yet.
-                self.dnd.ui::<ItemType>(ui, self.items.iter_mut(), |item, ui, handle| {
+                self.dnd.ui::<ItemType>(ui, self.itemstwo.iter_mut(), |item, ui, handle| {
                     ui.horizontal(|ui| {
                         // Anything in the handle can be used to drag the item
                         handle.ui(ui, item, |ui| {
@@ -75,29 +65,46 @@ impl App for DnDApp {
             // dragged item, as well as the index it was moved to. You can use the
             // shift_vec function as a helper if you store your items in a Vec.
             if let Some(response) = response.completed {
-                shift_vec(response.from, response.to, &mut self.items);
+                shift_vec(response.from, response.to, &mut self.itemstwo);
+            }
+        });
+        egui::CentralPanel::default().show(ctx, |ui| {
+            let response =
+                // make sure this is called in a vertical layout.
+                // Horizontal sorting is not supported yet.
+                self.dnd.ui::<ItemType>(ui, self.itemsone.iter_mut(), |item, ui, handle| {
+                    ui.horizontal(|ui| {
+                        // Anything in the handle can be used to drag the item
+                        handle.ui(ui, item, |ui| {
+                            ui.label("grab");
+                        });
+
+                        ui.label(&item.name);
+                    });
+                });
+
+            // After the drag is complete, we get a response containing the old index of the
+            // dragged item, as well as the index it was moved to. You can use the
+            // shift_vec function as a helper if you store your items in a Vec.
+            if let Some(response) = response.completed {
+                shift_vec(response.from, response.to, &mut self.itemsone);
             }
         });
     }
 }
 
 pub fn main() {
+    let mut m = manager::Manager::new();
+    m.fetch_mods(String::from("/home/creami/Documents/rwmanager/test/input"));
+    m.load_active_from_file("/home/creami/Documents/rwmanager/test/input/ModsConfig.xml");
+    m.save_mods("/home/creami/Documents/rwmanager/test/");
+    //m.save_mod_list("/home/creami/Documents/rwmanager/test/");
+    //m.load_mod_list("/home/creami/Documents/rwmanager/test/");
+
     eframe::run_native(
         "DnD Example",
         NativeOptions::default(),
         Box::new(|_a| Box::<DnDApp>::default()),
     )
     .unwrap();
-}
-*/
-
-// impl App for RwManager {
-//     fn update(&mut self, ctx: &egui::Context, frame: &mut Frame) {
-//         CentralPanel::default()
-//     }
-// }
-
-pub fn main() {
-    let m = manager::Manager::new();
-    m.fetch_mods(String::from("/home/creami/Documents/rwmanager/test/input"));
 }

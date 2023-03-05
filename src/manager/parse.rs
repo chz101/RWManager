@@ -1,14 +1,15 @@
 use quick_xml::events::Event;
 use quick_xml::reader::Reader;
+use serde::{Deserialize, Serialize};
 use std::fs;
 use std::path::PathBuf;
 use std::str;
 
-#[derive(Debug)]
+#[derive(Serialize, Deserialize, Debug)]
 pub struct Entry {
+    pub active: bool,
     name: String,
     author: String,
-    packageid: String,
     steamid: String,
     versions: Vec<String>,
     dependencies: Vec<String>,
@@ -20,9 +21,9 @@ pub struct Entry {
 impl Default for Entry {
     fn default() -> Entry {
         Entry {
+            active: false,
             name: String::from(""),
             author: String::from(""),
-            packageid: String::from(""),
             steamid: String::from(""),
             versions: Vec::new(), //TODO: Don't initialize empty if nothing there?
             dependencies: Vec::new(),
@@ -46,13 +47,14 @@ pub fn parse_basic_list(
     loop {
         match reader.read_event().unwrap() {
             Event::Start(tag) => {
-                if str::from_utf8(tag.name().as_ref()).unwrap() == "li" {
-                    let mod_name: String = match reader.read_event().unwrap() {
-                        Event::Text(txt) => String::from(txt.unescape().unwrap().into_owned()),
-                        _ => String::from(""),
-                    };
-                    vec.push(mod_name);
+                if str::from_utf8(tag.name().as_ref()).unwrap() != "li" {
+                    continue;
                 }
+                let mod_name: String = match reader.read_event().unwrap() {
+                    Event::Text(txt) => txt.unescape().unwrap().into_owned().to_lowercase(),
+                    _ => String::from(""),
+                };
+                vec.push(mod_name);
             }
             Event::End(tag) => {
                 if str::from_utf8(tag.name().as_ref()).unwrap() == end_field {
@@ -75,14 +77,15 @@ pub fn parse_dependencies(
     loop {
         match reader.read_event().unwrap() {
             Event::Start(tag) => {
-                if str::from_utf8(tag.name().as_ref()).unwrap() == "packageId" {
-                    let mod_name: String = match reader.read_event().unwrap() {
-                        Event::Text(txt) => String::from(txt.unescape().unwrap().into_owned()),
-                        _ => String::from(""),
-                    };
-                    if !vec.contains(&mod_name) {
-                        vec.push(mod_name);
-                    }
+                if str::from_utf8(tag.name().as_ref()).unwrap() != "packageId" {
+                    continue;
+                }
+                let mod_name: String = match reader.read_event().unwrap() {
+                    Event::Text(txt) => txt.unescape().unwrap().into_owned().to_lowercase(),
+                    _ => String::from(""),
+                };
+                if !vec.contains(&mod_name) {
+                    vec.push(mod_name);
                 }
             }
             Event::End(tag) => {
@@ -96,13 +99,20 @@ pub fn parse_dependencies(
 }
 
 //TODO: Figure out paths and passing stuff around..
-pub fn parse_mod(path: PathBuf) -> Entry {
+pub fn parse_mod(path: PathBuf) -> (String, Entry) {
     let mut entry = Entry::default();
 
-    entry.steamid = String::from(path.file_name().unwrap().to_str().unwrap());
+    entry.steamid = String::from(
+        path.to_str()
+            .unwrap()
+            .strip_suffix("/About/About.xml")
+            .unwrap()
+            .rsplit_once('/')
+            .unwrap()
+            .1,
+    );
 
-    let contents = fs::read_to_string(&(String::from(path.to_str().unwrap()) + "/About/About.xml"))
-        .expect("Should have been able to read the file...");
+    let contents = fs::read_to_string(&path.to_str().unwrap()).expect("Could not read mod path...");
 
     let mut reader = Reader::from_str(&contents);
     //reader.trim_text(true);
@@ -118,6 +128,8 @@ pub fn parse_mod(path: PathBuf) -> Entry {
             _ => continue,
         }
     }
+
+    let mut pid: String = String::from("");
 
     loop {
         match reader.read_event().unwrap() {
@@ -136,7 +148,7 @@ pub fn parse_mod(path: PathBuf) -> Entry {
                 match field {
                     "name" => entry.name = text,
                     "author" => entry.author = text,
-                    "packageId" => entry.packageid = text,
+                    "packageId" => pid = text.to_lowercase(),
                     "supportedVersions" => {
                         parse_basic_list(&mut reader, &mut entry.versions, "supportedVersions")
                     }
@@ -180,5 +192,9 @@ pub fn parse_mod(path: PathBuf) -> Entry {
         }
     }
 
-    return entry;
+    if entry.name == "" {
+        entry.name = entry.steamid.clone()
+    }
+
+    return (pid, entry);
 }
